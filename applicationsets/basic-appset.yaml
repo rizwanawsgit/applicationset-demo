@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: basic-appset
+  namespace: argocd
+spec:
+  generators:
+    - matrix:
+        generators:
+          # Generator 1: Environments
+          - list:
+              elements:
+                - env: dev
+                  namespace: dev
+                - env: staging
+                  namespace: staging
+
+          # Generator 2: Apps from Git folders
+          - git:
+              repoURL: https://github.com/rizwanawsgit/applicationset-demo.git
+              revision: HEAD
+              directories:
+                - path: "manifests/*"   # Har folder = ek app
+
+  template:
+    metadata:
+      name: "{{path.basename}}-{{env}}"   # frontend-dev, nginx-staging etc
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/rizwanawsgit/applicationset-demo.git
+        targetRevision: HEAD
+        path: "{{path}}"                  # manifests/frontend
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{namespace}}"        # dev ya staging
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
